@@ -3,6 +3,6 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
-  base: "/streaming/",
+  base: '/streaming/',
   plugins: [react(), tailwindcss()],
 })
