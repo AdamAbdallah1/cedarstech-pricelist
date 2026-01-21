@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/streaming", "destination": "/index.html" },
+    { "source": "/streaming/:path*", "destination": "/index.html" }
+  ]
+}
