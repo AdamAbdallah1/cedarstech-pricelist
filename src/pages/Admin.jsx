@@ -101,33 +101,33 @@ export default function Admin({ setIsAuthed }) {
       
       <nav className="border-b border-white/5 bg-zinc-950/50 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-20 h-20 rounded-lg flex items-center justify-center">
-              <img src={Logo} alt="" />
+          <div className="flex items-center gap-2 md:gap-3">
+            <div className="w-10 h-10 md:w-20 md:h-20 rounded-lg flex items-center justify-center overflow-hidden">
+              <img src={Logo} alt="" className="w-full h-full object-contain" />
             </div>
             <div>
-              <span className="text-xs font-black uppercase tracking-[0.3em] block">Cedars Admin</span>
+              <span className="text-[10px] md:text-xs font-black uppercase tracking-[0.2em] md:tracking-[0.3em] block">Cedars Admin</span>
               <div className="flex items-center gap-1.5">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest">System Live</span>
+                <div className="w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-[7px] md:text-[8px] font-bold text-zinc-500 uppercase tracking-widest">System Live</span>
               </div>
             </div>
           </div>
           
-          <div className="flex items-center gap-2">
-            <button onClick={() => nav("/prices")} className="p-2.5 rounded-xl hover:bg-white/5 transition-all text-zinc-400 hover:text-white">
+          <div className="flex items-center gap-1 md:gap-2">
+            <button onClick={() => nav("/prices")} className="p-2 md:p-2.5 rounded-xl hover:bg-white/5 transition-all text-zinc-400 hover:text-white">
               <FiEye size={18} />
             </button>
-            <button onClick={logout} className="p-2.5 rounded-xl hover:bg-red-500/10 transition-all text-zinc-400 hover:text-red-500">
+            <button onClick={logout} className="p-2 md:p-2.5 rounded-xl hover:bg-red-500/10 transition-all text-zinc-400 hover:text-red-500">
               <FiLogOut size={18} />
             </button>
           </div>
         </div>
       </nav>
 
-      <main className="max-w-6xl mx-auto px-4 pt-10">
+      <main className="max-w-6xl mx-auto px-4 pt-6 md:pt-10">
         
-        <div className="flex flex-col md:flex-row gap-4 mb-8">
+        <div className="flex flex-col md:flex-row gap-3 md:gap-4 mb-8">
           <div className="relative flex-grow">
             <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
             <input 
@@ -138,10 +138,10 @@ export default function Admin({ setIsAuthed }) {
             />
           </div>
           <div className="flex gap-2">
-            <button onClick={exportToCSV} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 bg-zinc-900 border border-white/5 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-zinc-800 transition-all">
+            <button onClick={exportToCSV} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 md:px-6 bg-zinc-900 border border-white/5 rounded-2xl text-[9px] md:text-[10px] font-black uppercase tracking-widest hover:bg-zinc-800 transition-all py-3 md:py-0">
               <FiDownload size={14} /> Export
             </button>
-            <button onClick={addService} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 bg-blue-600 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-500 transition-all shadow-lg shadow-blue-600/20">
+            <button onClick={addService} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 md:px-6 bg-blue-600 rounded-2xl text-[9px] md:text-[10px] font-black uppercase tracking-widest hover:bg-blue-500 transition-all shadow-lg shadow-blue-600/20 py-3 md:py-0">
               <FiPlus size={14} /> Add Service
             </button>
           </div>
@@ -155,29 +155,28 @@ export default function Admin({ setIsAuthed }) {
                 layout
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className={`border rounded-[1.5rem] transition-all overflow-hidden ${expanded === s.id ? 'bg-zinc-900/40 border-white/10' : 'bg-zinc-950/40 border-white/5 hover:border-zinc-700'}`}
+                className={`border rounded-[1.5rem] md:rounded-[2rem] transition-all overflow-hidden ${expanded === s.id ? 'bg-zinc-900/40 border-white/10' : 'bg-zinc-950/40 border-white/5 hover:border-zinc-700'}`}
               >
-                {/* Header Section */}
                 <div 
-                  className="p-5 flex items-center justify-between cursor-pointer"
+                  className="p-4 md:p-5 flex items-center justify-between cursor-pointer"
                   onClick={() => setExpanded(expanded === s.id ? null : s.id)}
                 >
-                  <div className="flex items-center gap-4 flex-grow">
+                  <div className="flex items-center gap-3 md:gap-4 flex-grow">
                     <input
                       onClick={(e) => e.stopPropagation()}
-                      className="bg-transparent text-sm font-bold tracking-tight outline-none border-b border-transparent focus:border-blue-500 pb-0.5 w-full max-w-[200px]"
+                      className="bg-transparent text-sm font-bold tracking-tight outline-none border-b border-transparent focus:border-blue-500 pb-0.5 w-full max-w-[120px] md:max-w-[200px]"
                       value={s.name}
                       onChange={e => updateServiceField(s.id, "name", e.target.value)}
                     />
-                    <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest bg-white/5 px-2 py-1 rounded-md">
+                    <span className="text-[8px] md:text-[10px] font-bold text-zinc-600 uppercase tracking-widest bg-white/5 px-2 py-1 rounded-md">
                       {s.plans.length} Plans
                     </span>
                   </div>
                   
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2 md:gap-4">
                     <button 
                       onClick={(e) => { e.stopPropagation(); removeService(s.id); }}
-                      className="text-zinc-600 hover:text-red-500 transition-colors"
+                      className="text-zinc-600 hover:text-red-500 transition-colors p-1"
                     >
                       <FiTrash2 size={16} />
                     </button>
@@ -187,72 +186,80 @@ export default function Admin({ setIsAuthed }) {
                   </div>
                 </div>
 
-                {/* Expanded Details */}
                 <AnimatePresence>
                   {expanded === s.id && (
                     <motion.div 
                       initial={{ height: 0 }}
                       animate={{ height: 'auto' }}
                       exit={{ height: 0 }}
-                      className="border-t border-white/5 p-5 bg-black/20"
+                      className="border-t border-white/5 p-4 md:p-5 bg-black/20"
                     >
                       <div className="space-y-3">
-                        {s.plans.map((p, pi) => (
-                          <div key={pi} className="grid grid-cols-1 lg:grid-cols-6 gap-3 p-4 bg-zinc-900/50 rounded-2xl border border-white/5 items-center">
-                            <div className="lg:col-span-2 space-y-1">
-                              <label className="text-[8px] font-black text-zinc-600 uppercase tracking-widest">Plan Name</label>
-                              <input
-                                className="w-full bg-transparent text-xs font-bold outline-none"
-                                value={p.label}
-                                onChange={e => updatePlanField(s.id, s.plans, pi, "label", e.target.value)}
-                              />
-                            </div>
-                            
-                            <div className="grid grid-cols-2 gap-3 lg:col-span-3">
-                              <div className="space-y-1">
-                                <label className="text-[8px] font-black text-zinc-600 uppercase tracking-widest">Cost ($)</label>
+                        {s.plans.map((p, pi) => {
+                          const planProfit = (+p.sellPrice || 0) - (+p.costPrice || 0);
+                          return (
+                            <div key={pi} className="grid grid-cols-1 md:grid-cols-6 gap-3 md:gap-4 p-4 bg-zinc-900/50 rounded-2xl border border-white/5 items-center">
+                              <div className="md:col-span-2 space-y-1">
+                                <label className="text-[8px] font-black text-zinc-600 uppercase tracking-widest">Plan Name</label>
                                 <input
-                                  className="w-full bg-transparent text-xs font-bold outline-none text-red-400"
-                                  value={p.costPrice}
-                                  onChange={e => updatePlanField(s.id, s.plans, pi, "costPrice", e.target.value)}
+                                  className="w-full bg-transparent text-xs font-bold outline-none"
+                                  value={p.label}
+                                  onChange={e => updatePlanField(s.id, s.plans, pi, "label", e.target.value)}
                                 />
                               </div>
-                              <div className="space-y-1">
-                                <label className="text-[8px] font-black text-zinc-600 uppercase tracking-widest">Sell ($)</label>
-                                <input
-                                  className="w-full bg-transparent text-xs font-bold outline-none text-emerald-400"
-                                  value={p.sellPrice}
-                                  onChange={e => updatePlanField(s.id, s.plans, pi, "sellPrice", e.target.value)}
-                                />
+                              
+                              <div className="grid grid-cols-3 gap-3 md:col-span-3">
+                                <div className="space-y-1">
+                                  <label className="text-[8px] font-black text-zinc-600 uppercase tracking-widest">Cost ($)</label>
+                                  <input
+                                    className="w-full bg-transparent text-xs font-bold outline-none text-red-400"
+                                    value={p.costPrice}
+                                    onChange={e => updatePlanField(s.id, s.plans, pi, "costPrice", e.target.value)}
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-[8px] font-black text-zinc-600 uppercase tracking-widest">Sell ($)</label>
+                                  <input
+                                    className="w-full bg-transparent text-xs font-bold outline-none text-emerald-400"
+                                    value={p.sellPrice}
+                                    onChange={e => updatePlanField(s.id, s.plans, pi, "sellPrice", e.target.value)}
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-[8px] font-black text-zinc-600 uppercase tracking-widest">Profit</label>
+                                  <div className={`text-xs font-bold ${planProfit >= 0 ? 'text-blue-400' : 'text-red-500'}`}>
+                                    ${planProfit.toFixed(2)}
+                                  </div>
+                                </div>
                               </div>
-                            </div>
 
-                            <div className="flex items-center justify-between lg:justify-end gap-4 border-t lg:border-t-0 border-white/5 pt-3 lg:pt-0">
-                                <select
-                                  className="bg-transparent text-[10px] font-black uppercase outline-none cursor-pointer text-zinc-400"
-                                  value={p.duration}
-                                  onChange={e => updatePlanField(s.id, s.plans, pi, "duration", e.target.value)}
-                                >
-                                  {durations.map(d => <option key={d} value={d} className="bg-zinc-900">{d}</option>)}
-                                </select>
-                                <button onClick={() => removePlan(s, pi)} className="text-zinc-600 hover:text-red-500 transition-colors">
-                                  <FiTrash2 size={14} />
-                                </button>
+                              <div className="flex items-center justify-between md:justify-end gap-4 border-t md:border-t-0 border-white/5 pt-3 md:pt-0">
+                                  <select
+                                    className="bg-transparent text-[10px] font-black uppercase outline-none cursor-pointer text-zinc-400"
+                                    value={p.duration}
+                                    onChange={e => updatePlanField(s.id, s.plans, pi, "duration", e.target.value)}
+                                  >
+                                    {durations.map(d => <option key={d} value={d} className="bg-zinc-900">{d}</option>)}
+                                  </select>
+                                  <button onClick={() => removePlan(s, pi)} className="text-zinc-600 hover:text-red-500 transition-colors">
+                                    <FiTrash2 size={14} />
+                                  </button>
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
 
                       <div className="mt-6 flex flex-col md:flex-row justify-between items-center gap-4">
                         <button 
                           onClick={() => addPlan(s)}
-                          className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-blue-500 hover:text-blue-400 transition-colors"
+                          className="w-full md:w-auto flex items-center justify-center gap-2 py-3 px-4 md:px-0 md:py-0 text-[10px] font-black uppercase tracking-widest text-blue-500 hover:text-blue-400 transition-colors bg-white/5 md:bg-transparent rounded-xl md:rounded-none"
                         >
                           <FiPlus /> Add Plan Options
                         </button>
                         
-                        <div className="flex items-center gap-3 bg-zinc-900 px-4 py-2 rounded-xl border border-white/5">
-                          <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Net Potential Profit</span>
+                        <div className="w-full md:w-auto flex items-center justify-between md:justify-end gap-3 bg-zinc-900 px-4 py-3 rounded-xl border border-white/5">
+                          <span className="text-[9px] md:text-[10px] font-black text-zinc-500 uppercase tracking-widest">Total Srv. Profit</span>
                           <span className="text-sm font-black text-emerald-400">
                             ${(s.plans.reduce((acc, p) => acc + ((+p.sellPrice || 0) - (+p.costPrice || 0)), 0)).toFixed(2)}
                           </span>
@@ -274,8 +281,8 @@ export default function Admin({ setIsAuthed }) {
         )}
       </main>
 
-      <footer className="mt-20 border-t border-white/5 py-10 opacity-30 text-center">
-        <p className="text-[9px] font-black uppercase tracking-[0.5em]">Cedars Tech Admin Framework v2.0</p>
+      <footer className="mt-20 border-t border-white/5 py-10 opacity-30 text-center px-4">
+        <p className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.3em] md:tracking-[0.5em]">Cedars Tech Admin Framework v2.0 • Ace 2026</p>
       </footer>
     </div>
   );

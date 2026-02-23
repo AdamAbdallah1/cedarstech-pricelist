@@ -1,6 +1,9 @@
 import { useEffect, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FiShoppingBag, FiSearch, FiUser, FiZap, FiSun, FiMoon, FiArrowUpRight, FiFilter } from "react-icons/fi";
+import { 
+  FiShoppingBag, FiSearch, FiUser, FiZap, FiSun, FiMoon, 
+  FiArrowUpRight, FiFilter, FiInfo, FiX, FiCheckCircle, FiClock 
+} from "react-icons/fi";
 import { HiOutlineSparkles } from "react-icons/hi2";
 import { useNavigate } from "react-router-dom";
 import { db } from "../../firebase.js";
@@ -15,7 +18,14 @@ export default function Prices() {
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState("priceLow");
   const [duration, setDuration] = useState("All");
+  const [category, setCategory] = useState("All");
   const [darkMode, setDarkMode] = useState(true);
+  const [showPayment, setShowPayment] = useState(false);
+  
+  // New Features State
+  const [currency, setCurrency] = useState("USD"); // USD or LBP
+  const [recentOrder, setRecentOrder] = useState(null);
+  const lbpRate = 89500; 
 
   useEffect(() => {
     const colRef = collection(db, "services");
@@ -26,14 +36,34 @@ export default function Prices() {
         plans: d.data().plans || [] 
       })));
     });
-    return () => unsubscribe();
+
+    // Floating Orders Logic
+    const names = ["Adam", "Rami", "Samer", "Laila", "Maya", "Hassan"];
+    const items = ["Netflix", "ChatGPT", "Spotify", "Canva"];
+    const interval = setInterval(() => {
+      setRecentOrder({
+        name: names[Math.floor(Math.random() * names.length)],
+        item: items[Math.floor(Math.random() * items.length)]
+      });
+      setTimeout(() => setRecentOrder(null), 4000);
+    }, 15000);
+
+    return () => { unsubscribe(); clearInterval(interval); };
   }, []);
 
   const processedServices = useMemo(() => {
     let bestDealId = null;
     let maxProfit = 0;
 
-    services.forEach(s => {
+    const filtered = services.map(s => {
+      const monthlyPlan = s.plans.find(p => p.duration === "Monthly");
+      const yearlyPlan = s.plans.find(p => p.duration === "Yearly");
+      let savingsPercent = 0;
+      if (monthlyPlan && yearlyPlan) {
+        const expectedYearly = monthlyPlan.sellPrice * 12;
+        savingsPercent = Math.round(((expectedYearly - yearlyPlan.sellPrice) / expectedYearly) * 100);
+      }
+
       s.plans.forEach(p => {
         if (p.costPrice && p.sellPrice) {
           const profit = ((p.sellPrice - p.costPrice) / p.costPrice) * 100;
@@ -43,24 +73,34 @@ export default function Prices() {
           }
         }
       });
-    });
 
-    const filtered = services.map(s => {
       let plans = [...s.plans].filter(p => 
         s.name.toLowerCase().includes(search.toLowerCase()) || 
         (p.label || "").toLowerCase().includes(search.toLowerCase())
       );
+      
       if (duration !== "All") plans = plans.filter(p => p.duration === duration);
+      
       plans.sort((a, b) => {
         if (sortBy === "priceLow") return (+a.sellPrice || 0) - (+b.sellPrice || 0);
         if (sortBy === "priceHigh") return (+b.sellPrice || 0) - (+a.sellPrice || 0);
         return (a.label || "").localeCompare(b.label || "");
       });
-      return { ...s, plans };
-    }).filter(s => s.plans.length > 0);
+
+      return { ...s, plans, savingsPercent };
+    }).filter(s => {
+      const matchesSearch = s.plans.length > 0;
+      const matchesCategory = category === "All" || s.category === category;
+      return matchesSearch && matchesCategory;
+    });
 
     return { filtered, bestDealId };
-  }, [services, search, sortBy, duration]);
+  }, [services, search, sortBy, duration, category]);
+
+  const formatPrice = (usd) => {
+    if (currency === "LBP") return (usd * lbpRate).toLocaleString() + " L.L.";
+    return "$" + usd;
+  };
 
   const t = {
     bg: darkMode ? "bg-[#000000]" : "bg-[#ffffff]",
@@ -74,94 +114,106 @@ export default function Prices() {
   return (
     <div className={`min-h-screen transition-all duration-500 ${t.bg} ${t.text} antialiased selection:bg-blue-500/30 font-sans`}>
       
+      {/* Floating Recent Order */}
+      <AnimatePresence>
+        {recentOrder && (
+          <motion.div 
+            initial={{ opacity: 0, y: 20, x: 20 }} animate={{ opacity: 1, y: 0, x: 0 }} exit={{ opacity: 0, scale: 0.9 }}
+            className="fixed bottom-6 right-6 z-[60] p-4 rounded-2xl bg-zinc-900/90 border border-white/10 backdrop-blur-xl shadow-2xl flex items-center gap-3"
+          >
+            <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-500"><FiZap size={14} /></div>
+            <div>
+              <p className="text-[10px] font-black uppercase text-white">{recentOrder.name} just bought</p>
+              <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">{recentOrder.item} Premium</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showPayment && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowPayment(false)} className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
+            <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className={`relative w-full max-w-md p-6 rounded-[2rem] border ${darkMode ? 'border-white/10 bg-zinc-950' : 'border-zinc-200 bg-white shadow-2xl'}`}>
+              <button onClick={() => setShowPayment(false)} className="absolute top-6 right-6 opacity-50 hover:opacity-100"><FiX size={20}/></button>
+              <h3 className="text-xl font-black mb-6 uppercase tracking-tighter">Payment Methods</h3>
+              <div className="space-y-4">
+                {[
+                  { name: "Whish Money", detail: "Contact for ID: +961 81 090 757", color: "text-blue-500" },
+                  { name: "OMT", detail: "Standard Transfer", color: "text-orange-500" },
+                  { name: "USDT", detail: "Binance / TRC20", color: "text-emerald-500" }
+                ].map((m, i) => (
+                  <div key={i} className={`p-4 rounded-2xl border ${darkMode ? 'border-white/5 bg-white/5' : 'border-zinc-100 bg-zinc-50'}`}>
+                    <p className={`text-[10px] font-black uppercase tracking-widest ${m.color} mb-1`}>{m.name}</p>
+                    <p className="text-sm font-bold opacity-80">{m.detail}</p>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-6 text-[9px] font-bold opacity-40 uppercase text-center tracking-widest">Screenshot receipt and send to WhatsApp</p>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       <nav className={`fixed top-0 w-full z-50 border-b ${darkMode ? 'border-white/5' : 'border-zinc-200'} ${t.glass}`}>
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div 
-            className="flex items-center gap-3 group cursor-pointer" 
-            onClick={() => window.scrollTo({top:0, behavior:'smooth'})}
-          >
-            <div className="relative w-20 h-20 flex items-center justify-center">
-              <img 
-                src={darkMode ? WhiteLogo : BlackLogo} 
-                alt="Cedars Tech" 
-                className="w-full h-full object-contain transition-all duration-300"
-              />
+          <div className="flex items-center gap-2 md:gap-3 group cursor-pointer" onClick={() => window.scrollTo({top:0, behavior:'smooth'})}>
+            <div className="relative w-8 h-8 md:w-10 md:h-10 flex items-center justify-center">
+              <img src={darkMode ? WhiteLogo : BlackLogo} alt="Cedars Tech" className="w-full h-full object-contain" />
             </div>
-            <span className="text-[11px] font-black tracking-[0.4em] uppercase opacity-80 group-hover:opacity-100 transition-opacity">
-              Cedars Tech
-            </span>
+            <span className="text-[9px] md:text-[11px] font-black tracking-[0.2em] md:tracking-[0.4em] uppercase opacity-80">Cedars Tech</span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 md:gap-2">
+            {/* Currency Toggle */}
             <button 
-              onClick={() => setDarkMode(!darkMode)} 
-              className="p-2.5 rounded-xl hover:bg-zinc-500/10 transition-all active:scale-95 text-inherit"
+              onClick={() => setCurrency(currency === "USD" ? "LBP" : "USD")}
+              className={`px-3 py-1.5 rounded-lg text-[9px] font-black border transition-all ${darkMode ? 'border-white/10 hover:bg-white/5' : 'border-zinc-200 hover:bg-zinc-50'}`}
             >
-              {darkMode ? <FiSun size={18} /> : <FiMoon size={18} />}
+              {currency}
             </button>
-            <button 
-              onClick={() => nav("/login")} 
-              className="p-2.5 rounded-xl border border-transparent hover:border-zinc-500/20 hover:bg-zinc-500/5 transition-all text-inherit"
-            >
-              <FiUser size={18} />
-            </button>
+            <button onClick={() => setShowPayment(true)} className="p-2 md:p-2.5 rounded-xl hover:bg-zinc-500/10 transition-all text-inherit"><FiInfo size={18} /></button>
+            <button onClick={() => setDarkMode(!darkMode)} className="p-2 md:p-2.5 rounded-xl hover:bg-zinc-500/10 transition-all text-inherit">{darkMode ? <FiSun size={18} /> : <FiMoon size={18} />}</button>
+            <button onClick={() => nav("/login")} className="p-2 md:p-2.5 rounded-xl border border-transparent hover:border-zinc-500/20 hover:bg-zinc-500/5 transition-all text-inherit"><FiUser size={18} /></button>
           </div>
         </div>
       </nav>
 
-      <main className="max-w-6xl mx-auto px-4 pt-32 pb-20">
+      <main className="max-w-6xl mx-auto px-4 pt-28 md:pt-32 pb-20">
         
-        <div className="relative mb-14 ml-1">
-          <motion.div 
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="absolute -top-16 left-0 w-48 h-48 bg-blue-600/10 blur-[100px] rounded-full pointer-events-none" 
-          />
-          <motion.h1 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-4xl md:text-6xl font-black tracking-tighter mb-4"
-          >
-            Digital <span className="bg-gradient-to-r from-blue-500 to-indigo-400 bg-clip-text text-transparent">Marketplace</span>
+        {/* Market Trend Indicator */}
+        <div className="flex items-center gap-2 mb-6 ml-1 opacity-60">
+          <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-emerald-500/10 text-emerald-500">
+            <FiClock size={10} />
+            <span className="text-[8px] font-black uppercase tracking-widest">Market Live: Prices Synced</span>
+          </div>
+          <span className="text-[8px] font-bold uppercase tracking-tighter">Rate: 1$ = {lbpRate.toLocaleString()} L.L.</span>
+        </div>
+
+        <div className="relative mb-10 md:mb-14 ml-1">
+          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="absolute -top-16 left-0 w-32 h-32 md:w-48 md:h-48 bg-blue-600/10 blur-[80px] md:blur-[100px] rounded-full pointer-events-none" />
+          <motion.h1 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="text-3xl md:text-6xl font-black tracking-tighter mb-4 leading-[1.1]">
+            Digital <br className="block md:hidden" />
+            <span className="bg-gradient-to-r from-blue-500 to-indigo-400 bg-clip-text text-transparent">Marketplace</span>
           </motion.h1>
-          <motion.p 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.1 }}
-            className={`text-sm md:text-lg ${darkMode ? 'text-zinc-500' : 'text-zinc-400'} font-medium max-w-xl leading-relaxed`}
-          >
-            Premium subscriptions and digital assets for the Lebanese tech ecosystem. Instantly delivered, professionally managed.
+          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className={`text-xs md:text-lg ${darkMode ? 'text-zinc-500' : 'text-zinc-400'} font-medium max-w-xl`}>
+            Premium subscriptions for the Lebanese tech ecosystem. Instantly delivered, professionally managed.
           </motion.p>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-4 mb-12">
-          <div className={`relative flex-grow lg:max-w-md ${t.glass} rounded-2xl border ${darkMode ? 'border-white/10' : 'border-zinc-200'} shadow-xl shadow-black/5`}>
-            <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={20} />
-            <input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search services (Netflix, ChatGPT...)"
-              className="w-full bg-transparent pl-12 pr-4 py-4 text-base outline-none focus:ring-2 ring-blue-500/20 transition-all rounded-2xl"
-            />
+        <div className="flex flex-col lg:flex-row gap-4 mb-8 md:mb-12">
+          <div className={`relative flex-grow lg:max-w-md ${t.glass} rounded-2xl border ${darkMode ? 'border-white/10' : 'border-zinc-200'}`}>
+            <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search services..." className="w-full bg-transparent pl-12 pr-4 py-3.5 md:py-4 text-sm md:text-base outline-none rounded-2xl" />
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-3">
             <div className={`flex items-center gap-1 p-1.5 rounded-2xl border ${darkMode ? 'border-white/10' : 'border-zinc-200'} ${t.glass}`}>
               {['All', 'Monthly', 'Yearly'].map((d) => (
-                <button
-                  key={d}
-                  onClick={() => setDuration(d)}
-                  className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${duration === d ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' : 'hover:bg-zinc-500/10'}`}
-                >
-                  {d}
-                </button>
+                <button key={d} onClick={() => setDuration(d)} className={`flex-1 sm:flex-none px-4 md:px-6 py-2.5 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all ${duration === d ? 'bg-blue-600 text-white shadow-lg' : 'hover:bg-zinc-500/10'}`}>{d}</button>
               ))}
             </div>
-            <select
-              className={`px-4 py-2.5 rounded-2xl text-[10px] font-black uppercase tracking-widest border outline-none cursor-pointer bg-transparent transition-all ${darkMode ? 'border-white/10' : 'border-zinc-200'}`}
-              value={sortBy}
-              onChange={e => setSortBy(e.target.value)}
-            >
+            <select className={`px-4 py-3 rounded-2xl text-[9px] md:text-[10px] font-black uppercase border bg-transparent ${darkMode ? 'border-white/10' : 'border-zinc-200'}`} value={sortBy} onChange={e => setSortBy(e.target.value)}>
               <option value="priceLow" className={darkMode ? "bg-black" : "bg-white"}>Sort: Lowest</option>
               <option value="priceHigh" className={darkMode ? "bg-black" : "bg-white"}>Sort: Highest</option>
             </select>
@@ -171,23 +223,19 @@ export default function Prices() {
         <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <AnimatePresence mode="popLayout">
             {processedServices.filtered.map((s) => (
-              <motion.div
-                layout
-                key={s.id}
-                initial={{ opacity: 0, scale: 0.98 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.98 }}
-                className={`group border p-5 rounded-[1.5rem] transition-all duration-300 ${t.card} hover:border-blue-500/30 shadow-sm`}
-              >
-                <div className="flex justify-between items-start mb-6">
+              <motion.div layout key={s.id} initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.98 }} className={`group border p-4 md:p-5 rounded-[1.5rem] md:rounded-[2rem] transition-all duration-300 ${t.card} hover:border-blue-500/30`}>
+                <div className="flex justify-between items-start mb-5 md:mb-6">
                   <div>
-                    <h2 className="text-sm font-bold tracking-tight uppercase mb-1">{s.name}</h2>
-                    {s.featured && (
-                      <div className="flex items-center gap-1 text-blue-400">
-                        <HiOutlineSparkles size={10} />
-                        <span className="text-[8px] font-black uppercase tracking-tighter">Verified</span>
+                    <h2 className="text-xs md:text-sm font-bold tracking-tight uppercase mb-1">{s.name}</h2>
+                    <div className="flex gap-2 items-center">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
+                        <span className="text-[7px] font-black uppercase text-zinc-500">In Stock</span>
                       </div>
-                    )}
+                      {s.savingsPercent > 0 && (
+                        <span className="text-[7px] font-black uppercase bg-emerald-500/10 text-emerald-500 px-1.5 py-0.5 rounded">Save {s.savingsPercent}%</span>
+                      )}
+                    </div>
                   </div>
                   <FiShoppingBag className="text-zinc-600 group-hover:text-blue-500 transition-colors" size={14} />
                 </div>
@@ -198,19 +246,17 @@ export default function Prices() {
                     return (
                       <div key={i} className={`flex items-center justify-between p-3 rounded-xl border ${t.item} hover:bg-zinc-500/5 transition-all`}>
                         <div className="flex flex-col">
-                          <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wide">{p.label}</span>
-                          {isBestDeal && <span className="text-[8px] text-emerald-500 font-black italic">BEST DEAL</span>}
+                          <span className="text-[9px] md:text-[10px] font-bold text-zinc-400 uppercase tracking-wide">{p.label}</span>
+                          {isBestDeal && <span className="text-[7px] md:text-[8px] text-blue-500 font-black italic tracking-tighter uppercase">Recommended</span>}
                         </div>
-                        
                         <div className="flex items-center gap-3">
-                          <span className="text-sm font-black tracking-tight">${p.sellPrice}</span>
+                          <span className="text-xs md:text-sm font-black tracking-tight">{formatPrice(p.sellPrice)}</span>
                           <a
-                            href={`https://wa.me/96181090757?text=Hi%20Ace,%20I'd%20like%20to%20order%20${encodeURIComponent(s.name + " " + p.label)}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="w-7 h-7 flex items-center justify-center rounded-lg bg-gradient-to-br from-zinc-100 to-zinc-300 dark:from-zinc-800 dark:to-zinc-900 shadow-sm hover:from-blue-500 hover:to-indigo-600 group/btn transition-all active:scale-90"
+                            href={`https://wa.me/96181090757?text=Hello,%20I'd%20like%20to%20order%20${encodeURIComponent(s.name + " " + p.label)}`}
+                            target="_blank" rel="noreferrer"
+                            className="w-7 h-7 flex items-center justify-center rounded-lg bg-zinc-100 dark:bg-zinc-800 hover:bg-blue-600 transition-all active:scale-90 shadow-sm"
                           >
-                            <FiArrowUpRight className="text-zinc-900 dark:text-zinc-100 group-hover/btn:text-white transition-colors" size={12} />
+                            <FiArrowUpRight className="text-zinc-900 dark:text-zinc-100 hover:text-white transition-colors" size={12} />
                           </a>
                         </div>
                       </div>
@@ -223,19 +269,19 @@ export default function Prices() {
         </motion.div>
 
         {processedServices.filtered.length === 0 && (
-          <div className="py-24 text-center opacity-30">
-            <FiFilter className="mx-auto mb-4" size={32} />
-            <p className="text-[11px] font-black uppercase tracking-widest">No matching services</p>
+          <div className="py-20 text-center opacity-30">
+            <FiFilter className="mx-auto mb-4" size={28} />
+            <p className="text-[10px] md:text-[11px] font-black uppercase tracking-widest">No matching services</p>
           </div>
         )}
       </main>
 
-      <footer className={`py-12 border-t ${darkMode ? 'border-white/5' : 'border-zinc-100'}`}>
-        <div className="max-w-6xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-6 opacity-40">
-          <span className="text-[9px] font-black uppercase tracking-[0.4em]">© {new Date().getFullYear()} Cedars Tech. All rights reserved.</span>
-          <div className="flex gap-8 text-[9px] font-black uppercase tracking-[0.4em]">
-            <a href="#" className="hover:text-blue-500 transition-colors">Instagram</a>
-            <a href="#" className="hover:text-blue-500 transition-colors">WhatsApp</a>
+      <footer className={`py-10 md:py-12 border-t ${darkMode ? 'border-white/5' : 'border-zinc-100'}`}>
+        <div className="max-w-6xl mx-auto px-4 flex flex-col items-center text-center md:flex-row md:justify-between opacity-40">
+          <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.2em]">© {new Date().getFullYear()} Cedars Tech Lebanon.</span>
+          <div className="flex gap-6 text-[8px] md:text-[9px] font-black uppercase tracking-[0.2em]">
+            <a href="#" className="hover:text-blue-500">Instagram</a>
+            <a href="#" className="hover:text-blue-500">WhatsApp</a>
           </div>
         </div>
       </footer>
