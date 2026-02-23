@@ -3,19 +3,20 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FiTrash2, FiPlus, FiLogOut, FiDownload, FiSearch,
-  FiChevronDown, FiChevronUp, FiMenu
+  FiChevronDown, FiChevronUp, FiEye, FiSettings, FiCheckCircle
 } from "react-icons/fi";
 import { db } from "../../firebase.js";
 import {
   collection, onSnapshot, doc, updateDoc, addDoc, deleteDoc, serverTimestamp
 } from "firebase/firestore";
 
+import Logo from '../assets/logo-white.png';
+
 export default function Admin({ setIsAuthed }) {
   const nav = useNavigate();
   const [services, setServices] = useState([]);
   const [search, setSearch] = useState("");
   const [expanded, setExpanded] = useState(null);
-  const [menuOpen, setMenuOpen] = useState(false);
 
   const durations = ["Monthly", "Yearly"];
 
@@ -34,19 +35,18 @@ export default function Admin({ setIsAuthed }) {
     nav("/login");
   };
 
-  const viewPrices = () => nav("/prices");
-
   const addService = async () => {
     await addDoc(collection(db, "services"), {
-      name: "",
-      icon: "",
+      name: "New Service",
       plans: [],
       updatedAt: serverTimestamp()
     });
   };
 
   const removeService = async (id) => {
-    await deleteDoc(doc(db, "services", id));
+    if (window.confirm("Delete this service?")) {
+      await deleteDoc(doc(db, "services", id));
+    }
   };
 
   const updateServiceField = async (id, field, value) => {
@@ -61,9 +61,9 @@ export default function Admin({ setIsAuthed }) {
 
   const addPlan = async (service) => {
     const newPlans = [...service.plans, {
-      label: "",
-      costPrice: "",
-      sellPrice: "",
+      label: "New Plan",
+      costPrice: "0",
+      sellPrice: "0",
       duration: "Monthly",
       features: false
     }];
@@ -76,202 +76,207 @@ export default function Admin({ setIsAuthed }) {
     await updateDoc(doc(db, "services", service.id), { plans: newPlans, updatedAt: serverTimestamp() });
   };
 
-  const toggleFeature = async (serviceId, plans, index) => {
-    const updatedPlans = [...plans];
-    updatedPlans[index].features = !updatedPlans[index].features;
-    await updateDoc(doc(db, "services", serviceId), { plans: updatedPlans, updatedAt: serverTimestamp() });
-  };
-
   const exportToCSV = () => {
-    let csv = "Service,Plan,Duration,Cost,Sell,Profit,Profit%\n";
+    let csv = "Service,Plan,Duration,Cost,Sell,Profit\n";
     services.forEach(s => {
       (s.plans || []).forEach(p => {
-        const cost = +p.costPrice || 0;
-        const sell = +p.sellPrice || 0;
-        const profit = sell - cost;
-        const pct = cost ? ((profit / cost) * 100).toFixed(1) : 0;
-        csv += `"${s.name}","${p.label}","${p.duration || ""}",${cost},${sell},${profit},${pct}%\n`;
+        const profit = (+p.sellPrice || 0) - (+p.costPrice || 0);
+        csv += `"${s.name}","${p.label}","${p.duration}",${p.costPrice},${p.sellPrice},${profit}\n`;
       });
     });
     const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "cedars_pricing_report.csv";
+    a.href = url;
+    a.download = `cedars_report_${new Date().toLocaleDateString()}.csv`;
     a.click();
   };
 
-  const filteredServices = services
-    .map(s => {
-      const plans = s.plans || [];
-      if (s.name.toLowerCase().includes(search.toLowerCase())) return { ...s, plans };
-      const matchingPlans = plans.filter(p =>
-        (p.label || "").toLowerCase().includes(search.toLowerCase())
-      );
-      return { ...s, plans: matchingPlans };
-    })
-    .filter(s => (s.plans || []).length > 0 || s.name.toLowerCase().includes(search.toLowerCase()) || s.name === "");
+  const filteredServices = services.filter(s => 
+    s.name.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
-    <div className="min-h-screen p-6 sm:p-10 text-white bg-[#070b1a]">
-      <div className="max-w-6xl mx-auto flex flex-col gap-6">
-        <h1 className="text-3xl sm:text-4xl font-extrabold text-center mb-6 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-          CedarsTech Admin Panel
-        </h1>
-
-        {/* Top Menu */}
-        <div className="flex flex-col sm:flex-row justify-between gap-3 sticky top-0 z-20 bg-black/30 p-3 rounded-2xl backdrop-blur-md shadow-lg">
-          <div className="flex justify-between items-center sm:hidden">
-            <span className="font-semibold text-white">Menu</span>
-            <button onClick={() => setMenuOpen(!menuOpen)}>
-              <FiMenu size={24} />
+    <div className="min-h-screen bg-black text-zinc-100 antialiased font-sans selection:bg-blue-500/30 pb-20">
+      
+      <nav className="border-b border-white/5 bg-zinc-950/50 backdrop-blur-md sticky top-0 z-50">
+        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-20 h-20 rounded-lg flex items-center justify-center">
+              <img src={Logo} alt="" />
+            </div>
+            <div>
+              <span className="text-xs font-black uppercase tracking-[0.3em] block">Cedars Admin</span>
+              <div className="flex items-center gap-1.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest">System Live</span>
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <button onClick={() => nav("/prices")} className="p-2.5 rounded-xl hover:bg-white/5 transition-all text-zinc-400 hover:text-white">
+              <FiEye size={18} />
+            </button>
+            <button onClick={logout} className="p-2.5 rounded-xl hover:bg-red-500/10 transition-all text-zinc-400 hover:text-red-500">
+              <FiLogOut size={18} />
             </button>
           </div>
+        </div>
+      </nav>
 
-          <div className={`${menuOpen ? "flex" : "hidden"} sm:flex flex-wrap sm:flex-nowrap justify-center sm:justify-start gap-2`}>
-            <div className="flex items-center bg-white/5 px-3 py-2 rounded-xl shadow-inner flex-1 sm:flex-none">
-              <FiSearch className="text-white/60 mr-2" size={20} />
-              <input
-                type="text"
-                placeholder="Search service or plan..."
-                className="bg-transparent outline-none text-white w-full"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
-
-            <button onClick={exportToCSV} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-400 shadow hover:scale-105 transition">
-              <FiDownload /> Export CSV
+      <main className="max-w-6xl mx-auto px-4 pt-10">
+        
+        <div className="flex flex-col md:flex-row gap-4 mb-8">
+          <div className="relative flex-grow">
+            <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
+            <input 
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search services..."
+              className="w-full bg-zinc-900/40 border border-white/5 rounded-2xl py-3.5 pl-12 pr-4 text-sm outline-none focus:ring-1 ring-blue-500/50 transition-all"
+            />
+          </div>
+          <div className="flex gap-2">
+            <button onClick={exportToCSV} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 bg-zinc-900 border border-white/5 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-zinc-800 transition-all">
+              <FiDownload size={14} /> Export
             </button>
-
-            <button onClick={addService} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-blue-400 shadow hover:scale-105 transition">
-              <FiPlus /> Add Service
-            </button>
-
-            <button onClick={viewPrices} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-400 shadow hover:scale-105 transition">
-              View Prices
-            </button>
-
-            <button onClick={logout} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-red-600 to-red-400 shadow hover:scale-105 transition">
-              <FiLogOut /> Logout
+            <button onClick={addService} className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 bg-blue-600 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-500 transition-all shadow-lg shadow-blue-600/20">
+              <FiPlus size={14} /> Add Service
             </button>
           </div>
         </div>
 
-        {/* Services */}
-        <div className="flex flex-col gap-5">
+        <div className="space-y-4">
           <AnimatePresence>
-            {filteredServices.map((s, idx) => {
-              const totalProfit = (s.plans || []).reduce((acc, p) => {
-                const cost = +p.costPrice || 0;
-                const sell = +p.sellPrice || 0;
-                return acc + (sell - cost);
-              }, 0);
-
-              return (
-                <motion.div
-                  key={s.id}
-                  layout
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  whileHover={{ scale: 1.03 }}
-                  className="relative bg-white/5 backdrop-blur-xl p-4 rounded-2xl border border-white/10 shadow-xl"
+            {filteredServices.map((s) => (
+              <motion.div
+                key={s.id}
+                layout
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className={`border rounded-[1.5rem] transition-all overflow-hidden ${expanded === s.id ? 'bg-zinc-900/40 border-white/10' : 'bg-zinc-950/40 border-white/5 hover:border-zinc-700'}`}
+              >
+                {/* Header Section */}
+                <div 
+                  className="p-5 flex items-center justify-between cursor-pointer"
+                  onClick={() => setExpanded(expanded === s.id ? null : s.id)}
                 >
-                  <div className="flex justify-between items-center mb-4 gap-2 cursor-pointer" onClick={() => setExpanded(expanded === s.id ? null : s.id)}>
+                  <div className="flex items-center gap-4 flex-grow">
                     <input
-                      className="bg-white/10 px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-purple-400 text-white w-full sm:w-auto"
+                      onClick={(e) => e.stopPropagation()}
+                      className="bg-transparent text-sm font-bold tracking-tight outline-none border-b border-transparent focus:border-blue-500 pb-0.5 w-full max-w-[200px]"
                       value={s.name}
-                      placeholder="Service name"
                       onChange={e => updateServiceField(s.id, "name", e.target.value)}
                     />
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => removeService(s.id)} className="text-red-400 hover:text-red-500">
-                        <FiTrash2 size={22} />
-                      </button>
-                      {expanded === s.id ? <FiChevronUp size={24} /> : <FiChevronDown size={24} />}
+                    <span className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest bg-white/5 px-2 py-1 rounded-md">
+                      {s.plans.length} Plans
+                    </span>
+                  </div>
+                  
+                  <div className="flex items-center gap-4">
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); removeService(s.id); }}
+                      className="text-zinc-600 hover:text-red-500 transition-colors"
+                    >
+                      <FiTrash2 size={16} />
+                    </button>
+                    <div className="text-zinc-500">
+                      {expanded === s.id ? <FiChevronUp size={20} /> : <FiChevronDown size={20} />}
                     </div>
                   </div>
+                </div>
 
+                {/* Expanded Details */}
+                <AnimatePresence>
                   {expanded === s.id && (
-                    <div className="space-y-2">
-                      {(s.plans || []).map((p, pi) => {
-                        const cost = +p.costPrice || 0;
-                        const sell = +p.sellPrice || 0;
-                        const profit = sell - cost;
-
-                        return (
-                          <motion.div
-                            key={pi}
-                            layout
-                            whileHover={{ scale: 1.02 }}
-                            className="grid grid-cols-2 sm:grid-cols-7 gap-2 items-center bg-black/30 p-2 rounded-lg border border-white/10"
-                          >
-                            <input
-                              className="col-span-1 sm:col-span-2 bg-white/10 px-2 py-1 rounded-lg outline-none focus:ring-2 focus:ring-purple-400 text-white"
-                              placeholder="Plan"
-                              value={p.label}
-                              onChange={e => updatePlanField(s.id, s.plans, pi, "label", e.target.value)}
-                            />
-                            <input
-                              className="bg-white/10 px-2 py-1 rounded-lg outline-none focus:ring-2 focus:ring-purple-400 text-white"
-                              placeholder="Cost"
-                              value={p.costPrice}
-                              onChange={e => updatePlanField(s.id, s.plans, pi, "costPrice", e.target.value)}
-                            />
-                            <input
-                              className="bg-white/10 px-2 py-1 rounded-lg outline-none focus:ring-2 focus:ring-purple-400 text-white"
-                              placeholder="Sell"
-                              value={p.sellPrice}
-                              onChange={e => updatePlanField(s.id, s.plans, pi, "sellPrice", e.target.value)}
-                            />
-                            <select
-                              className="bg-white/10 px-2 py-1 rounded-lg outline-none focus:ring-2 focus:ring-purple-400 text-white"
-                              value={p.duration || "Monthly"}
-                              onChange={e => updatePlanField(s.id, s.plans, pi, "duration", e.target.value)}
-                            >
-                              {durations.map(d => <option key={d} value={d}>{d}</option>)}
-                            </select>
-                            <button
-                              onClick={() => toggleFeature(s.id, s.plans, pi)}
-                              className={`px-2 py-1 rounded-lg font-medium ${p.features ? "bg-emerald-500" : "bg-white/10"} hover:opacity-80`}
-                            >
-                              Feature
-                            </button>
-                            <div className={`text-sm font-semibold ${profit >= 0 ? "text-green-400" : "text-red-400"}`}>
-                              {profit >= 0 ? "+" : ""}{profit.toFixed(2)}
+                    <motion.div 
+                      initial={{ height: 0 }}
+                      animate={{ height: 'auto' }}
+                      exit={{ height: 0 }}
+                      className="border-t border-white/5 p-5 bg-black/20"
+                    >
+                      <div className="space-y-3">
+                        {s.plans.map((p, pi) => (
+                          <div key={pi} className="grid grid-cols-1 lg:grid-cols-6 gap-3 p-4 bg-zinc-900/50 rounded-2xl border border-white/5 items-center">
+                            <div className="lg:col-span-2 space-y-1">
+                              <label className="text-[8px] font-black text-zinc-600 uppercase tracking-widest">Plan Name</label>
+                              <input
+                                className="w-full bg-transparent text-xs font-bold outline-none"
+                                value={p.label}
+                                onChange={e => updatePlanField(s.id, s.plans, pi, "label", e.target.value)}
+                              />
                             </div>
-                            <button onClick={() => removePlan(s, pi)} className="text-red-400 hover:text-red-500">
-                              <FiTrash2 />
-                            </button>
-                          </motion.div>
-                        );
-                      })}
+                            
+                            <div className="grid grid-cols-2 gap-3 lg:col-span-3">
+                              <div className="space-y-1">
+                                <label className="text-[8px] font-black text-zinc-600 uppercase tracking-widest">Cost ($)</label>
+                                <input
+                                  className="w-full bg-transparent text-xs font-bold outline-none text-red-400"
+                                  value={p.costPrice}
+                                  onChange={e => updatePlanField(s.id, s.plans, pi, "costPrice", e.target.value)}
+                                />
+                              </div>
+                              <div className="space-y-1">
+                                <label className="text-[8px] font-black text-zinc-600 uppercase tracking-widest">Sell ($)</label>
+                                <input
+                                  className="w-full bg-transparent text-xs font-bold outline-none text-emerald-400"
+                                  value={p.sellPrice}
+                                  onChange={e => updatePlanField(s.id, s.plans, pi, "sellPrice", e.target.value)}
+                                />
+                              </div>
+                            </div>
 
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        onClick={() => addPlan(s)}
-                        className="mt-2 flex items-center gap-2 text-blue-400 hover:text-blue-300 font-medium"
-                      >
-                        <FiPlus /> Add Plan
-                      </motion.button>
-
-                      <div className="mt-2 text-right font-semibold text-lg text-purple-400 drop-shadow-lg">
-                        Total Profit: {totalProfit.toFixed(2)}
+                            <div className="flex items-center justify-between lg:justify-end gap-4 border-t lg:border-t-0 border-white/5 pt-3 lg:pt-0">
+                                <select
+                                  className="bg-transparent text-[10px] font-black uppercase outline-none cursor-pointer text-zinc-400"
+                                  value={p.duration}
+                                  onChange={e => updatePlanField(s.id, s.plans, pi, "duration", e.target.value)}
+                                >
+                                  {durations.map(d => <option key={d} value={d} className="bg-zinc-900">{d}</option>)}
+                                </select>
+                                <button onClick={() => removePlan(s, pi)} className="text-zinc-600 hover:text-red-500 transition-colors">
+                                  <FiTrash2 size={14} />
+                                </button>
+                            </div>
+                          </div>
+                        ))}
                       </div>
 
-                      {s.updatedAt && (
-                        <div className="text-right text-xs text-white/60">
-                          Last Updated: {new Date(s.updatedAt.seconds * 1000).toLocaleString()}
+                      <div className="mt-6 flex flex-col md:flex-row justify-between items-center gap-4">
+                        <button 
+                          onClick={() => addPlan(s)}
+                          className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-blue-500 hover:text-blue-400 transition-colors"
+                        >
+                          <FiPlus /> Add Plan Options
+                        </button>
+                        
+                        <div className="flex items-center gap-3 bg-zinc-900 px-4 py-2 rounded-xl border border-white/5">
+                          <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Net Potential Profit</span>
+                          <span className="text-sm font-black text-emerald-400">
+                            ${(s.plans.reduce((acc, p) => acc + ((+p.sellPrice || 0) - (+p.costPrice || 0)), 0)).toFixed(2)}
+                          </span>
                         </div>
-                      )}
-                    </div>
+                      </div>
+                    </motion.div>
                   )}
-                </motion.div>
-              );
-            })}
+                </AnimatePresence>
+              </motion.div>
+            ))}
           </AnimatePresence>
         </div>
-      </div>
+
+        {filteredServices.length === 0 && (
+          <div className="py-20 text-center opacity-20">
+            <FiSettings className="mx-auto mb-4 animate-spin-slow" size={40} />
+            <p className="text-xs font-black uppercase tracking-widest">No matching records found</p>
+          </div>
+        )}
+      </main>
+
+      <footer className="mt-20 border-t border-white/5 py-10 opacity-30 text-center">
+        <p className="text-[9px] font-black uppercase tracking-[0.5em]">Cedars Tech Admin Framework v2.0</p>
+      </footer>
     </div>
   );
 }
