@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FiTrash2, FiPlus, FiLogOut, FiDownload, FiSearch,
-  FiChevronDown, FiChevronUp, FiEye, FiSettings
+  FiChevronDown, FiChevronUp, FiEye, FiSettings, FiPackage, FiSlash
 } from "react-icons/fi";
 import { db } from "../../firebase.js";
 import {
@@ -19,7 +19,8 @@ export default function Admin({ setIsAuthed }) {
   const [expanded, setExpanded] = useState(null);
 
   const durations = ["Monthly", "Yearly"];
-  const categories = ["Streaming", "Productivity", "Entertainment", "Tools", "Other"]; // predefined categories
+  const planTypes = ["Full Account", "1 User", "Private", "Shared"]; // Options for the new selector
+  const categories = ["Streaming", "Productivity", "Entertainment", "Tools", "Other"];
 
   useEffect(() => {
     const colRef = collection(db, "services");
@@ -73,6 +74,8 @@ export default function Admin({ setIsAuthed }) {
       costPrice: "0",
       sellPrice: "0",
       duration: "Monthly",
+      type: "Full Account", // Default value for the new field
+      inStock: true, // Defaulting to In Stock
       features: false
     }];
     await updateDoc(doc(db, "services", service.id), { plans: newPlans, updatedAt: serverTimestamp() });
@@ -85,11 +88,11 @@ export default function Admin({ setIsAuthed }) {
   };
 
   const exportToCSV = () => {
-    let csv = "Service,Category,Plan,Duration,Cost,Sell,Profit\n";
+    let csv = "Service,Category,Plan,Type,Duration,Cost,Sell,Profit,Stock\n";
     services.forEach(s => {
       (s.plans || []).forEach(p => {
         const profit = (+p.sellPrice || 0) - (+p.costPrice || 0);
-        csv += `"${s.name}","${s.category || 'Other'}","${p.label}","${p.duration}",${p.costPrice},${p.sellPrice},${profit}\n`;
+        csv += `"${s.name}","${s.category || 'Other'}","${p.label}","${p.type || 'N/A'}","${p.duration}",${p.costPrice},${p.sellPrice},${profit},${p.inStock !== false ? 'In Stock' : 'Out of Stock'}\n`;
       });
     });
     const blob = new Blob([csv], { type: "text/csv" });
@@ -202,7 +205,6 @@ export default function Admin({ setIsAuthed }) {
                       exit={{ height: 0 }}
                       className="border-t border-white/5 p-4 md:p-5 bg-black/20"
                     >
-                      {/* Category Input */}
                       <div className="mb-4">
                         <label className="text-xs font-bold uppercase tracking-widest text-zinc-400">Category</label>
                         <select
@@ -214,12 +216,12 @@ export default function Admin({ setIsAuthed }) {
                         </select>
                       </div>
 
-                      {/* Plans List */}
                       <div className="space-y-3">
                         {s.plans.map((p, pi) => {
                           const planProfit = (+p.sellPrice || 0) - (+p.costPrice || 0);
+                          const isStock = p.inStock !== false;
                           return (
-                            <div key={pi} className="grid grid-cols-1 md:grid-cols-5 gap-3 md:gap-4 p-4 bg-zinc-900/50 rounded-2xl border border-white/5 items-center">
+                            <div key={pi} className="grid grid-cols-1 md:grid-cols-7 gap-3 md:gap-4 p-4 bg-zinc-900/50 rounded-2xl border border-white/5 items-center">
                               <div className="space-y-1">
                                 <label className="text-[8px] font-black text-zinc-600 uppercase tracking-widest">Plan Name</label>
                                 <input
@@ -227,6 +229,16 @@ export default function Admin({ setIsAuthed }) {
                                   value={p.label}
                                   onChange={e => updatePlanField(s.id, s.plans, pi, "label", e.target.value)}
                                 />
+                              </div>
+                              <div className="space-y-1">
+                                <label className="text-[8px] font-black text-blue-500 uppercase tracking-widest">Type</label>
+                                <select
+                                  className="w-full bg-transparent text-xs font-bold outline-none uppercase"
+                                  value={p.type || "Full Account"}
+                                  onChange={e => updatePlanField(s.id, s.plans, pi, "type", e.target.value)}
+                                >
+                                  {planTypes.map(t => <option key={t} value={t} className="bg-zinc-900">{t}</option>)}
+                                </select>
                               </div>
                               <div className="space-y-1">
                                 <label className="text-[8px] font-black text-zinc-600 uppercase tracking-widest">Cost ($)</label>
@@ -249,6 +261,17 @@ export default function Admin({ setIsAuthed }) {
                                 <div className={`text-xs font-bold ${planProfit >= 0 ? 'text-blue-400' : 'text-red-500'}`}>
                                   ${planProfit.toFixed(2)}
                                 </div>
+                              </div>
+                              {/* STOCK TOGGLE FIELD */}
+                              <div className="space-y-1">
+                                <label className="text-[8px] font-black text-zinc-600 uppercase tracking-widest">Stock</label>
+                                <button 
+                                  onClick={() => updatePlanField(s.id, s.plans, pi, "inStock", !isStock)}
+                                  className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border transition-all text-[9px] font-bold uppercase ${isStock ? 'border-emerald-500/20 text-emerald-500 bg-emerald-500/5' : 'border-red-500/20 text-red-500 bg-red-500/5'}`}
+                                >
+                                  <div className={`w-1.5 h-1.5 rounded-full ${isStock ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                                  {isStock ? 'In Stock' : 'Sold Out'}
+                                </button>
                               </div>
                               <div className="space-y-1 flex flex-col justify-between">
                                 <select
