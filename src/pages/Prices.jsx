@@ -232,11 +232,11 @@ export default function Prices() {
     localStorage.setItem("lastOrderMemory", JSON.stringify(orderToSave));
     setLastOrder(orderToSave);
 
-    const message = `🚀 NEW ORDER: #${orderID}
+    const message = `NEW ORDER: #${orderID}
 ---
-📦 ASSET: ${service.name}
-💎 PLAN: ${plan.label} (${plan.type || 'Standard'})
-⏳ DURATION: ${plan.duration}
+ASSET: ${service.name}
+PLAN: ${plan.label} (${plan.type || 'Standard'})
+DURATION: ${plan.duration}
 💰 TOTAL: ${formatPrice(finalPrice)}
 ---
 👤 CUSTOMER:
@@ -562,22 +562,46 @@ export default function Prices() {
                 </div>
 
                 <div className="space-y-3">
-                  {[
-                    { name: "Whish Money", detail: "Fastest local transfer", icon: <FiWhish className="text-blue-500"/> },
-                    { name: "OMT", detail: "Available everywhere in LB", icon: <FiSend className="text-orange-500"/> },
-                  ].map((method, idx) => (
-                    <div key={idx} className={`p-4 rounded-2xl border flex items-center justify-between ${darkMode ? 'bg-white/5 border-white/10' : 'bg-zinc-50 border-zinc-200'}`}>
-                      <div className="flex items-center gap-4">
-                        <div className={`p-3 rounded-xl ${darkMode ? 'bg-black/40' : 'bg-white shadow-sm'}`}>{method.icon}</div>
-                        <div>
-                          <p className="text-[11px] font-black uppercase">{method.name}</p>
-                          <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-tight">{method.detail}</p>
-                        </div>
-                      </div>
-                      <div className="px-3 py-1 bg-blue-600/10 text-blue-500 rounded-full text-[8px] font-black uppercase">Active</div>
-                    </div>
-                  ))}
-                </div>
+  {[
+    { 
+      name: "Whish Money", 
+      detail: "Fastest local transfer", 
+      icon: <FiWhish className="text-blue-500"/>, 
+      copyText: "81090757" 
+    },
+    { 
+      name: "OMT", 
+      detail: "Available everywhere in LB", 
+      icon: <FiSend className="text-orange-500"/>, 
+      copyText: "Adam Abdallah" 
+    },
+  ].map((method, idx) => (
+    <div 
+      key={idx} 
+      className={`p-4 rounded-2xl border flex items-center justify-between ${darkMode ? 'bg-white/5 border-white/10' : 'bg-zinc-50 border-zinc-200'}`}
+    >
+      <div className="flex items-center gap-4">
+        <div className={`p-3 rounded-xl ${darkMode ? 'bg-black/40' : 'bg-white shadow-sm'}`}>
+          {method.icon}
+        </div>
+        <div>
+          <p className="text-[11px] font-black uppercase">{method.name}</p>
+          <p className="text-[9px] font-bold text-zinc-500 uppercase tracking-tight">{method.detail}</p>
+          <p 
+            className="text-[9px] text-blue-500 font-bold cursor-pointer select-all"
+            onClick={() => navigator.clipboard.writeText(method.copyText)}
+            title="Click to copy"
+          >
+            {method.copyText}
+          </p>
+        </div>
+      </div>
+      <div className="px-3 py-1 bg-blue-600/10 text-blue-500 rounded-full text-[8px] font-black uppercase">
+        Active
+      </div>
+    </div>
+  ))}
+</div>
 
                 <div className={`mt-8 p-4 rounded-2xl border border-dashed ${darkMode ? 'border-white/10' : 'border-zinc-200'}`}>
                   <p className="text-[9px] font-bold text-zinc-500 text-center uppercase leading-relaxed">
